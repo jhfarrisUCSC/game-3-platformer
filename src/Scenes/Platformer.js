@@ -5,10 +5,10 @@ class Platformer extends Phaser.Scene {
 
     init() {
         // variables and settings
-        this.ACCELERATION = 400;
+        this.ACCELERATION = 300;
         this.DRAG = 500;    // DRAG < ACCELERATION = icy slide
-        this.physics.world.gravity.y = 1500;
-        this.JUMP_VELOCITY = -600;
+        this.physics.world.gravity.y = 2000;
+        this.JUMP_VELOCITY = -550;
         this.PARTICLE_VELOCITY = 50;
         this.SCALE = 2.0;
     }
@@ -26,14 +26,30 @@ class Platformer extends Phaser.Scene {
 
         // Create a layer
         this.groundLayer = this.map.createLayer("ground", [this.industrial, this.base], 0, 0);
-        this.background = this.map.createLayer("background", [this.industrial, this.base], 0, 0);
 
         // Make it collidable
         this.groundLayer.setCollisionByProperty({
             collides: true
         });
-        this.background.setCollisionByProperty({ collides: false });
-        this.background.setCollision(false);
+
+        // Poison Water
+        this.groundLayer.setCollisionByProperty({
+            death: true
+        });
+
+        // Platform Collision
+        this.groundLayer.setCollisionByProperty({
+            platform: true
+        });
+        
+        this.groundLayer.forEachTile(tile => {
+            if (tile.properties.platform) {
+                tile.collideUp = true;
+                tile.collideDown = false;
+                tile.collideLeft = false;
+                tile.collideRight = false;
+            }
+        });
 
         // Find coins in the "Objects" layer in Phaser
         // Look for them by finding objects with the name "coin"
@@ -43,14 +59,16 @@ class Platformer extends Phaser.Scene {
 
         this.coins = this.map.createFromObjects("collectables", {
             name: "coin",
-            key: "tilemap_sheet",
+            key: "base_sheet",
             frame: 151
         });
         
+        this.coinCount = 0;
+
         this.key = this.map.createFromObjects("collectables", {
             name: "key",
-            key: "tilemap_sheet",
-            frame: 139
+            key: "base_sheet",
+            frame: 27
         });
 
         // Since createFromObjects returns an array of regular Sprites, we need to convert 
@@ -67,11 +85,24 @@ class Platformer extends Phaser.Scene {
         my.sprite.player = this.physics.add.sprite(30, 0, "platformer_characters", "tile_0000.png");
         my.sprite.player.setCollideWorldBounds(true);
 
+        
+        // Death Poison
+        this.physics.add.collider(my.sprite.player, this.groundLayer, (player, tile) => {
+            if (tile.properties.death) {
+                this.scene.restart();
+            }
+            else if (tile.properties.jumper) {
+                player.JUMP_VELOCITY(-900);
+            }
+            }
+        );
+
         // Enable collision handling
         this.physics.add.collider(my.sprite.player, this.groundLayer);
 
         // Handle collision detection with coins
         this.physics.add.overlap(my.sprite.player, this.coinGroup, (obj1, obj2) => {
+            this.coinCount += 1;
             obj2.destroy(); // remove coin on overlap
         });
         
@@ -111,6 +142,10 @@ class Platformer extends Phaser.Scene {
     }
 
     update() {
+        if (this.coinCount == 34) {
+            
+        }
+
         if(cursors.left.isDown) {
             my.sprite.player.setAccelerationX(-this.ACCELERATION);
             my.sprite.player.resetFlip();

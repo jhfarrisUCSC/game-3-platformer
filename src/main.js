@@ -1,10 +1,10 @@
-// Jim Whitehead
-// Created: 4/14/2024
+// Jack Farris
+// Created: 5/18/2026
 // Phaser: 3.70.0
 //
-// Cubey
+// Game 3(b)
 //
-// An example of putting sprites on the screen using Phaser
+// This uses a copy of the S7 Platformers Assignment
 // 
 // Art assets from Kenny Assets "Shape Characters" set:
 // https://kenney.nl/assets/shape-characters
@@ -29,8 +29,8 @@ let config = {
             }
         }
     },
-    width: 1440,
-    height: 800,
+    width: 1620,
+    height: 720,
     scene: [Load, Platformer]
 }
 
