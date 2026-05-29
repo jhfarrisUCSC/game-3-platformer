@@ -107,7 +107,7 @@ class Platformer extends Phaser.Scene {
                 this.scene.restart();
             }
             else if (tile.properties.door && (this.doorOpen == true)) {
-                this.scene.restart();
+                this.scene.start("endScene");
             }
         });
 
@@ -136,6 +136,9 @@ class Platformer extends Phaser.Scene {
 
         // Get coins
         this.cKey = this.input.keyboard.addKey('C');
+
+        // Ending
+        this.tKey = this.input.keyboard.addKey('T');
 
         // debug key listener (assigned to D key)
         this.input.keyboard.on('keydown-D', () => {
@@ -226,6 +229,10 @@ class Platformer extends Phaser.Scene {
 
         if(Phaser.Input.Keyboard.JustDown(this.rKey)) {
             this.scene.restart();
+        }
+
+        if(Phaser.Input.Keyboard.JustDown(this.tKey)) {
+            this.scene.start("endScene");
         }
 
         if(Phaser.Input.Keyboard.JustDown(this.cKey)) {
