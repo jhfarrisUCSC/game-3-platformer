@@ -6,9 +6,9 @@ class Platformer extends Phaser.Scene {
     init() {
         // variables and settings
         this.ACCELERATION = 300;
-        this.DRAG = 500;    // DRAG < ACCELERATION = icy slide
+        this.DRAG = 600;    // DRAG < ACCELERATION = icy slide
         this.physics.world.gravity.y = 2000;
-        this.JUMP_VELOCITY = -550;
+        this.JUMP_VELOCITY = -600;
         this.PARTICLE_VELOCITY = 50;
         this.SCALE = 2.0;
     }
@@ -35,6 +35,10 @@ class Platformer extends Phaser.Scene {
         // Poison Water
         this.groundLayer.setCollisionByProperty({
             death: true
+        });
+
+        this.groundLayer.setCollisionByProperty({
+            door: true
         });
 
         // Platform Collision
@@ -64,11 +68,22 @@ class Platformer extends Phaser.Scene {
         });
         
         this.coinCount = 0;
+        this.doorOpen = false;
 
+        // Key
         this.key = this.map.createFromObjects("collectables", {
             name: "key",
             key: "base_sheet",
             frame: 27
+        });
+
+        this.keyGroup = this.physics.add.staticGroup();
+
+        this.key.forEach(k => {
+            k.setVisible(false);
+            this.physics.world.enable(k, Phaser.Physics.Arcade.STATIC_BODY);
+            k.body.enable = false;
+            this.keyGroup.add(k);
         });
 
         // Since createFromObjects returns an array of regular Sprites, we need to convert 
@@ -86,16 +101,17 @@ class Platformer extends Phaser.Scene {
         my.sprite.player.setCollideWorldBounds(true);
 
         
-        // Death Poison
+        // Death Poison and Level Clear
         this.physics.add.collider(my.sprite.player, this.groundLayer, (player, tile) => {
             if (tile.properties.death) {
                 this.scene.restart();
             }
-            else if (tile.properties.jumper) {
-                player.JUMP_VELOCITY(-900);
+            else if (tile.properties.door && (this.doorOpen == true)) {
+                this.scene.restart();
             }
-            }
-        );
+        });
+
+        
 
         // Enable collision handling
         this.physics.add.collider(my.sprite.player, this.groundLayer);
@@ -106,11 +122,20 @@ class Platformer extends Phaser.Scene {
             obj2.destroy(); // remove coin on overlap
         });
         
+        this.physics.add.overlap(my.sprite.player, this.keyGroup, (obj1, obj2) => {
+            if(obj2.body && obj2.body.enable){
+                obj2.destroy(); // remove key
+                this.doorOpen = true;
+            }
+        });
 
         // set up Phaser-provided cursor key input
         cursors = this.input.keyboard.createCursorKeys();
 
         this.rKey = this.input.keyboard.addKey('R');
+
+        // Get coins
+        this.cKey = this.input.keyboard.addKey('C');
 
         // debug key listener (assigned to D key)
         this.input.keyboard.on('keydown-D', () => {
@@ -121,12 +146,12 @@ class Platformer extends Phaser.Scene {
         // movement vfx
 
         my.vfx.walking = this.add.particles(0, 0, "kenny-particles", {
-            frame: ['smoke_03.png', 'smoke_09.png'],
+            frame: ['smoke_04.png', 'smoke_06.png'],
             addRandom: true,
             scale: {start: 0.03, end: 0.1},
-            maxAliveParticles: 8,
-            lifespan: 350,
-            gravityY: -400,
+            maxAliveParticles: 5,
+            lifespan: 400,
+            gravityY: -500,
             alpha: {start: 1, end: 0.1}, 
         });
 
@@ -142,8 +167,11 @@ class Platformer extends Phaser.Scene {
     }
 
     update() {
-        if (this.coinCount == 34) {
-            
+        if (this.coinCount === this.coins.length) {
+            this.keyGroup.children.iterate(k => {
+                k.setVisible(true);
+                k.body.enable = true;
+            });
         }
 
         if(cursors.left.isDown) {
@@ -198,6 +226,10 @@ class Platformer extends Phaser.Scene {
 
         if(Phaser.Input.Keyboard.JustDown(this.rKey)) {
             this.scene.restart();
+        }
+
+        if(Phaser.Input.Keyboard.JustDown(this.cKey)) {
+            this.coinCount = this.coins.length;
         }
     }
 }
