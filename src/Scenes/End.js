@@ -4,7 +4,7 @@ class End extends Phaser.Scene {
     }
 
     create() {
-        this.add.image(810, 360, "ending");
+        this.add.image(810, 360, "ending").setScale(0.5);
 
         this.rKey = this.input.keyboard.addKey('R');
 
