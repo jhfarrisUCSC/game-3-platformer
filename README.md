@@ -1,4 +1,4 @@
-**Platform Improvement**
+**Game 3 Platformer**
 
 Starter code for creating a platformer game using Arcade Phsyics in Phaser.
 
