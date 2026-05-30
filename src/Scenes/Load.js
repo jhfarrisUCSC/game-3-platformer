@@ -18,6 +18,14 @@ class Load extends Phaser.Scene {
 
         this.load.tilemapTiledJSON("game3bmap", "game3bmap.tmj");   // Tilemap in JSON
 
+        // audio
+        this.load.audio('walking', 'footstep_carpet_003.ogg');
+        this.load.audio('ding', 'impactMetal_light_000.ogg');
+        this.load.audio('switch', 'switch_006.ogg');
+        this.load.audio('door', 'open_001.ogg');
+        this.load.audio('key', 'impactMetal_heavy_000.ogg');
+        this.load.audio('jumping', 'drop_001.ogg');
+        this.load.audio('dies', 'error_001.ogg');
 
         // Load the tilemap as a spritesheet
         this.load.spritesheet("base_sheet", "base_tiles.png", {

@@ -14,6 +14,9 @@ class Platformer extends Phaser.Scene {
     }
 
     create() {
+        // background
+        this.cameras.main.setBackgroundColor('#5f7073');
+
         // Create a new tilemap game object which uses 18x18 pixel tiles, and is
         // 45 tiles wide and 25 tiles tall.
         this.map = this.add.tilemap("game3bmap");
@@ -55,6 +58,8 @@ class Platformer extends Phaser.Scene {
             }
         });
 
+        this.airborne = false;
+
         // Find coins in the "Objects" layer in Phaser
         // Look for them by finding objects with the name "coin"
         // Assign the coin texture from the tilemap_sheet sprite sheet
@@ -79,11 +84,11 @@ class Platformer extends Phaser.Scene {
 
         this.keyGroup = this.physics.add.staticGroup();
 
-        this.key.forEach(k => {
-            k.setVisible(false);
-            this.physics.world.enable(k, Phaser.Physics.Arcade.STATIC_BODY);
-            k.body.enable = false;
-            this.keyGroup.add(k);
+        this.key.forEach(keyBody => {
+            keyBody.setVisible(false);
+            this.physics.world.enable(keyBody, Phaser.Physics.Arcade.STATIC_BODY);
+            keyBody.body.enable = false;
+            this.keyGroup.add(keyBody);
         });
 
         // Since createFromObjects returns an array of regular Sprites, we need to convert 
@@ -97,16 +102,18 @@ class Platformer extends Phaser.Scene {
         
 
         // set up player avatar
-        my.sprite.player = this.physics.add.sprite(30, 0, "platformer_characters", "tile_0000.png");
+        my.sprite.player = this.physics.add.sprite(64, 320, "platformer_characters", "tile_0000.png");
         my.sprite.player.setCollideWorldBounds(true);
 
         
         // Death Poison and Level Clear
         this.physics.add.collider(my.sprite.player, this.groundLayer, (player, tile) => {
             if (tile.properties.death) {
+                this.sound.play('dies');
                 this.scene.restart();
             }
             else if (tile.properties.door && (this.doorOpen == true)) {
+                this.sound.play('door');
                 this.scene.start("endScene");
             }
         });
@@ -119,11 +126,13 @@ class Platformer extends Phaser.Scene {
         // Handle collision detection with coins
         this.physics.add.overlap(my.sprite.player, this.coinGroup, (obj1, obj2) => {
             this.coinCount += 1;
+            this.sound.play('ding');
             obj2.destroy(); // remove coin on overlap
         });
         
         this.physics.add.overlap(my.sprite.player, this.keyGroup, (obj1, obj2) => {
             if(obj2.body && obj2.body.enable){
+                this.sound.play('key');
                 obj2.destroy(); // remove key
                 this.doorOpen = true;
             }
@@ -166,15 +175,29 @@ class Platformer extends Phaser.Scene {
         this.cameras.main.setDeadzone(50, 50);
         this.cameras.main.setZoom(this.SCALE);
         
+        this.stepCount = 200;
 
     }
 
-    update() {
+    update(time, delta) {
+        if(my.sprite.player.body.velocity.x != 0){
+            this.stepCount -= delta;
+            if(this.stepCount<=0 && (cursors.left.isDown || cursors.right.isDown) && my.sprite.player.body.blocked.down){
+                this.sound.play('walking');
+                this.stepCount = 200;
+            }else{
+                this.stepCool = 0;
+            }
+        }
+        
+
         if (this.coinCount === this.coins.length) {
-            this.keyGroup.children.iterate(k => {
-                k.setVisible(true);
-                k.body.enable = true;
+            this.sound.play('switch');
+            this.keyGroup.children.iterate(keyBody => {
+                keyBody.setVisible(true);
+                keyBody.body.enable = true;
             });
+            this.coinCount++;
         }
 
         if(cursors.left.isDown) {
@@ -185,13 +208,8 @@ class Platformer extends Phaser.Scene {
             my.vfx.walking.startFollow(my.sprite.player, my.sprite.player.displayWidth/2-10, my.sprite.player.displayHeight/2-5, false);
 
             my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
-            // Only play smoke effect if touching the ground
-            if (my.sprite.player.body.blocked.down) {
-                my.vfx.walking.start();
-            }
-            else {
-                my.vfx.walking.stop();
-            }
+            my.vfx.walking.start();
+
 
         } else if(cursors.right.isDown) {
             my.sprite.player.setAccelerationX(this.ACCELERATION);
@@ -201,13 +219,7 @@ class Platformer extends Phaser.Scene {
             my.vfx.walking.startFollow(my.sprite.player, my.sprite.player.displayWidth/2-10, my.sprite.player.displayHeight/2-5, false);
 
             my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
-            // Only play smoke effect if touching the ground
-            if (my.sprite.player.body.blocked.down) {
-                my.vfx.walking.start();
-            }
-            else {
-                my.vfx.walking.stop();
-            }
+            my.vfx.walking.start();
 
         } else {
             // Set acceleration to 0 and have DRAG take over
@@ -224,8 +236,24 @@ class Platformer extends Phaser.Scene {
             my.sprite.player.anims.play('jump');
         }
         if(my.sprite.player.body.blocked.down && Phaser.Input.Keyboard.JustDown(cursors.up)) {
+            my.vfx.walking.startFollow(my.sprite.player, my.sprite.player.displayWidth/2-10, my.sprite.player.displayHeight/2-5, false);
+
+            my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
+            my.vfx.walking.start();
             my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
+            this.sound.play('jumping');
         }
+
+        if(my.sprite.player.body.blocked.down && (this.airborne == true)) {
+            my.vfx.walking.startFollow(my.sprite.player, my.sprite.player.displayWidth/2-10, my.sprite.player.displayHeight/2-5, false);
+
+            my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
+            my.vfx.walking.start();
+            this.sound.play('walking');
+        }
+
+        this.airborne = !my.sprite.player.body.blocked.down;
+
 
         if(Phaser.Input.Keyboard.JustDown(this.rKey)) {
             this.scene.restart();
@@ -238,5 +266,6 @@ class Platformer extends Phaser.Scene {
         if(Phaser.Input.Keyboard.JustDown(this.cKey)) {
             this.coinCount = this.coins.length;
         }
+
     }
 }
