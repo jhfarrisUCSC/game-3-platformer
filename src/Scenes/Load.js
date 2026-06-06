@@ -77,6 +77,17 @@ class Load extends Phaser.Scene {
             ],
         });
 
+        // coin animation
+        this.anims.create({
+            key: 'coin',
+            frames: this.anims.generateFrameNumbers('base_sheet', {
+                start: 151,
+                end: 152
+            }),
+            duration: 1600,
+            repeat: -1
+        });
+
          // ...and pass to the next Scene
          this.scene.start("platformerScene");
     }

@@ -58,8 +58,6 @@ class Platformer extends Phaser.Scene {
             }
         });
 
-        this.airborne = false;
-
         // Find coins in the "Objects" layer in Phaser
         // Look for them by finding objects with the name "coin"
         // Assign the coin texture from the tilemap_sheet sprite sheet
@@ -81,6 +79,7 @@ class Platformer extends Phaser.Scene {
             key: "base_sheet",
             frame: 27
         });
+
 
         this.keyGroup = this.physics.add.staticGroup();
 
@@ -118,7 +117,35 @@ class Platformer extends Phaser.Scene {
             }
         });
 
-        
+        this.tileFrames = [
+            { frames: [14, 30], index: 0 },
+            { frames: [79, 80], index: 0 },
+            { frames: [95, 96], index: 0 }
+        ];
+
+        this.time.addEvent({
+            delay: 800,
+            loop: true,
+            callback: () => {
+                this.tileFrames.forEach(anim => {
+                    anim.index = (anim.index + 1) % anim.frames.length;
+                    this.groundLayer.forEachTile(tile => {
+                        if (anim.frames.includes(tile.index)) {
+                            tile.index = anim.frames[anim.index];
+                        }
+                    });
+                    this.groundLayer.forEachTile(tile => {
+                        if (anim.frames.includes(tile.index)) {
+                            tile.index = anim.frames[anim.index];
+                        }
+                    });
+                });
+            }
+        });
+
+        this.coins.forEach(coin => {
+            coin.play('coin');
+        });
 
         // Enable collision handling
         this.physics.add.collider(my.sprite.player, this.groundLayer);
@@ -132,6 +159,11 @@ class Platformer extends Phaser.Scene {
         
         this.physics.add.overlap(my.sprite.player, this.keyGroup, (obj1, obj2) => {
             if(obj2.body && obj2.body.enable){
+                this.groundLayer.forEachTile(tile => {
+                    if (tile.index === 29) {
+                        tile.index = 45;
+                    }
+                });
                 this.sound.play('key');
                 obj2.destroy(); // remove key
                 this.doorOpen = true;
@@ -180,6 +212,7 @@ class Platformer extends Phaser.Scene {
     }
 
     update(time, delta) {
+
         if(my.sprite.player.body.velocity.x != 0){
             this.stepCount -= delta;
             if(this.stepCount<=0 && (cursors.left.isDown || cursors.right.isDown) && my.sprite.player.body.blocked.down){
@@ -189,10 +222,14 @@ class Platformer extends Phaser.Scene {
                 this.stepCool = 0;
             }
         }
-        
 
         if (this.coinCount === this.coins.length) {
             this.sound.play('switch');
+            this.groundLayer.forEachTile(tile => {
+                if (tile.index === 10) {
+                    tile.index = 11;
+                }
+            });
             this.keyGroup.children.iterate(keyBody => {
                 keyBody.setVisible(true);
                 keyBody.body.enable = true;
