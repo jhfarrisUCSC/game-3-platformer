@@ -6,8 +6,14 @@
 //
 // This uses a copy of the S7 Platformers Assignment
 // 
-// Art assets from Kenny Assets "Shape Characters" set:
+// Art assets from Kenny Assets "Shape Characters", "Pixel Platformer", "Pixel Platformer Industrial Expansion" sets:
 // https://kenney.nl/assets/shape-characters
+// https://www.kenney.nl/assets/pixel-platformer
+// https://www.kenney.nl/assets/pixel-platformer-industrial-expansion
+//
+// Sound assets from Kenny Assets "Interface Sounds", "Impact Sounds" sets:
+// https://www.kenney.nl/assets/interface-sounds
+// https://www.kenney.nl/assets/impact-sounds
 
 // debug with extreme prejudice
 "use strict"
