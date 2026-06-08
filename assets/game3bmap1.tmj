@@ -106,8 +106,8 @@
                  "type":"",
                  "visible":true,
                  "width":18,
-                 "x":918.666333333333,
-                 "y":162.000333333333
+                 "x":918.666,
+                 "y":162
                 }, 
                 {
                  "gid":264,
@@ -325,7 +325,7 @@
                  "type":"",
                  "visible":true,
                  "width":18,
-                 "x":972.575666666667,
+                 "x":972.576,
                  "y":90.727
                 }, 
                 {
@@ -339,7 +339,7 @@
                  "visible":true,
                  "width":18,
                  "x":468,
-                 "y":180.393666666667
+                 "y":180.394
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -1609,7 +1609,7 @@
                  "id":148,
                  "properties":[
                         {
-                         "name":"onButton",
+                         "name":"button",
                          "type":"bool",
                          "value":true
                         }]
@@ -1618,7 +1618,7 @@
                  "id":149,
                  "properties":[
                         {
-                         "name":"offButton",
+                         "name":"button",
                          "type":"bool",
                          "value":true
                         }]

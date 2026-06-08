@@ -128,6 +128,7 @@ class Level2 extends Phaser.Scene {
             crate.pushed = true;
         }); 
 
+        
         this.switchOn = false;
 
         // Death Poison and Level Clear
@@ -140,7 +141,7 @@ class Level2 extends Phaser.Scene {
                 this.sound.play('door');
                 this.scene.start("endScene");
             } else if (tile.properties.jumper) {
-                player.setVelocityY(this.JUMP_VELOCITY * 1.5);
+                player.setVelocityY(this.JUMP_VELOCITY * 1.25);
             } else if (tile.properties.switch){
                 if (tile.index === 177 && Phaser.Input.Keyboard.JustDown(cursors.right)){
                     tile.index = 179;
@@ -256,18 +257,28 @@ class Level2 extends Phaser.Scene {
 
         this.gateToggle = false;
 
-        this.crateGroup.getChildren().forEach(crate => {
-            const tile = this.groundLayer.getTileAtWorldXY(crate.x, crate.y);
-            if (tile && tile.properties.onButton && (this.gateToggle == false) && (this.switchOn == false)) {
-                this.gateToggle = true;
-            } else if (tile && tile.properties.onButton && (this.gateToggle == true) && (this.switchOn == false)) {
-                this.gateToggle = false;
-            } else if (tile && tile.properties.offButton && (this.gateToggle == false) && (this.switchOn == false)) {
-                this.gateToggle = true;
-            } else if (tile && tile.properties.offButton && (this.gateToggle == true) && (this.switchOn == false)) {
-                this.gateToggle = false;
-            }
-        });
+let pressedButtons = 0;
+
+this.crateGroup.getChildren().forEach(crate => {
+    const tile = this.groundLayer.getTileAtWorldXY(crate.x, crate.y);
+
+    if (tile && tile.properties.button) {
+        pressedButtons++;
+    }
+});
+
+// RULE 1: switch overrides everything
+if (this.switchOn) {
+    this.gateToggle = false; // gate open
+}
+// RULE 2: crates on buttons close gate
+else if (pressedButtons > 0) {
+    this.gateToggle = true; // gate closed
+}
+// RULE 3: default state
+else {
+    this.gateToggle = false; // or whatever default you want
+}
 
         this.groundLayer.forEachTile(tile => {
             if (this.gateToggle) {

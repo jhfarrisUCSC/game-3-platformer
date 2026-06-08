@@ -680,12 +680,12 @@
   </tile>
   <tile id="148">
    <properties>
-    <property name="onButton" type="bool" value="true"/>
+    <property name="button" type="bool" value="true"/>
    </properties>
   </tile>
   <tile id="149">
    <properties>
-    <property name="offButton" type="bool" value="true"/>
+    <property name="button" type="bool" value="true"/>
    </properties>
   </tile>
   <tile id="151">
