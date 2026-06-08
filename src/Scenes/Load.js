@@ -17,6 +17,8 @@ class Load extends Phaser.Scene {
         this.load.tilemapTiledJSON("platformer-level-1", "platformer-level-1.tmj");   // Tilemap in JSON
 
         this.load.tilemapTiledJSON("game3bmap", "game3bmap.tmj");   // Tilemap in JSON
+        this.load.tilemapTiledJSON("game3bmap1", "game3bmap1.tmj");   // Tilemap in JSON
+
 
         // audio
         this.load.audio('walking', 'footstep_carpet_003.ogg');
@@ -89,7 +91,7 @@ class Load extends Phaser.Scene {
         });
 
          // ...and pass to the next Scene
-         this.scene.start("platformerScene");
+         this.scene.start("level2Scene");
     }
 
     // Never get here since a new scene is started in create()
