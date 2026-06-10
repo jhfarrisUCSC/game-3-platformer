@@ -73,6 +73,23 @@ class Level2 extends Phaser.Scene {
 
         this.coinCount = 0;
         this.doorOpen = false;
+        this.jumpPowerUp = false;
+
+        // Power Up
+        this.jumpPower = this.map.createFromObjects("collectables", {
+            name: "jumpPower",
+            key: "base_sheet",
+            frame: 67
+        });
+
+        this.powerGroup = this.physics.add.staticGroup();
+
+        this.jumpPower.forEach(gemBody => {
+            gemBody.setVisible(false);
+            this.physics.world.enable(gemBody, Phaser.Physics.Arcade.STATIC_BODY);
+            gemBody.body.enable = false;
+            this.powerGroup.add(gemBody);
+        });
 
         // Key
         this.key = this.map.createFromObjects("collectables", {
@@ -257,28 +274,41 @@ class Level2 extends Phaser.Scene {
 
         this.gateToggle = false;
 
-let pressedButtons = 0;
+        let pressedButtons = 0;
 
-this.crateGroup.getChildren().forEach(crate => {
-    const tile = this.groundLayer.getTileAtWorldXY(crate.x, crate.y);
+        this.crateGroup.getChildren().forEach(crate => {
+            const tile = this.groundLayer.getTileAtWorldXY(crate.x, crate.y);
+            if (tile && tile.properties.button) {
+                pressedButtons++;
+            }
+        });
 
-    if (tile && tile.properties.button) {
-        pressedButtons++;
-    }
-});
+        if (pressedButtons === 2) {
+            this.sound.play('switch');
+            this.powerGroup.children.iterate(gemBody => {
+                gemBody.setVisible(true);
+                gemBody.body.enable = true;
+            });
+        }
 
-// RULE 1: switch overrides everything
-if (this.switchOn) {
-    this.gateToggle = false; // gate open
-}
-// RULE 2: crates on buttons close gate
-else if (pressedButtons > 0) {
-    this.gateToggle = true; // gate closed
-}
-// RULE 3: default state
-else {
-    this.gateToggle = false; // or whatever default you want
-}
+        this.physics.add.overlap(my.sprite.player, this.powerGroup, (obj1, obj2) => {
+            this.sound.play('ding');
+            this.jumpPowerUp = true;
+            obj2.destroy(); // remove coin on overlap
+        });
+
+        // RULE 1: switch overrides everything
+        if (this.switchOn) {
+            this.gateToggle = false; // gate open
+        }
+        // RULE 2: crates on buttons close gate
+        else if (pressedButtons > 0) {
+            this.gateToggle = true; // gate closed
+        }
+        // RULE 3: default state
+        else {
+            this.gateToggle = false; // or whatever default you want
+        }
 
         this.groundLayer.forEachTile(tile => {
             if (this.gateToggle) {
@@ -301,7 +331,6 @@ else {
                 }
             }
         });
-
 
         if(my.sprite.player.body.velocity.x != 0){
             this.stepCount -= delta;
@@ -367,7 +396,11 @@ else {
 
             my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
             my.vfx.walking.start();
-            my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
+            if(this.jumpPowerUp == true){
+                my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY * 1.25);
+            } else{
+                my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
+            }
             this.sound.play('jumping');
         }
 
