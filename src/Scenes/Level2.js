@@ -26,6 +26,8 @@ class Level2 extends Phaser.Scene {
         // Second parameter: key for the tilesheet (from this.load.image in Load.js)
         this.industrial = this.map.addTilesetImage("industrial_tiles", "industrial_tiles");
         this.base = this.map.addTilesetImage("base_tiles", "base_tiles");
+        this.enemies = this.map.addTilesetImage("characters", "characters");
+
 
         // Create a layer
         this.groundLayer = this.map.createLayer("ground", [this.industrial, this.base], 0, 0);
@@ -50,14 +52,13 @@ class Level2 extends Phaser.Scene {
         
         // Collision for top of clouds and jump pad
         this.groundLayer.forEachTile(tile => {
-            if (tile.properties.platform || tile.properties.jumper) {
+            if (tile.properties.platform) {
                 tile.collideUp = true;
                 tile.collideDown = false;
                 tile.collideLeft = false;
                 tile.collideRight = false;
             }
         });
-
 
         // Create coins
         this.coins = this.map.createFromObjects("collectables", {
@@ -73,6 +74,28 @@ class Level2 extends Phaser.Scene {
             frame: 26
         });
         
+        // Create enemies
+        this.movingEnemies = this.map.createFromObjects("enemies", {
+            name: "mover",
+            key: "character_sheet",
+            frame: 15
+        });
+
+        this.enemyGroup = this.physics.add.group();
+
+        this.movingEnemies.forEach(enemy => {
+            this.physics.world.enable(enemy);
+            enemy.body.setCollideWorldBounds(true);
+            enemy.body.setAllowGravity(false);
+            enemy.play('mover');
+            enemy.moverTurn = false;
+            enemy.moverVel = -12;
+            enemy.body.setVelocityX(enemy.moverVel);
+            this.enemyGroup.add(enemy);
+        });
+
+        this.physics.add.collider(this.movingEnemies, this.groundLayer);
+
         // Player coin count
         this.coinCount = 0;
         
@@ -213,6 +236,7 @@ class Level2 extends Phaser.Scene {
             coin.play('coin');
         });
 
+
         // Enable collision handling
         this.physics.add.collider(my.sprite.player, this.groundLayer);
 
@@ -278,6 +302,22 @@ class Level2 extends Phaser.Scene {
 
     update(time, delta) {
 
+        // Enemy movement
+        this.enemyGroup.getChildren().forEach(enemy => {
+            const tile = this.groundLayer.getTileAtWorldXY(enemy.x, enemy.y);
+            if (!tile) {
+                enemy.body.setVelocityX(0);
+            } else if (tile.properties.trackEnd && enemy.moverTurn == false) {
+                enemy.moverTurn = true;
+                enemy.moverVel = -enemy.moverVel;
+                enemy.body.setVelocityX(enemy.moverVel);
+            } else if (tile.properties.track) {
+                enemy.moverTurn = false;
+                enemy.body.setVelocityX(enemy.moverVel);
+            }
+        });
+
+        
         // Stops crates from moving without player interaction
         this.crateGroup.children.iterate(crate => {
             if (!crate.pushed) {
@@ -419,8 +459,9 @@ class Level2 extends Phaser.Scene {
 
             my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
             my.vfx.walking.start();
-            // Reset Jump Pads
-            my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
+            if (this.jumpPowerUp == true){
+                my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY * 1.25);
+            } else {my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);}
             this.sound.play('jumping');
         }
 

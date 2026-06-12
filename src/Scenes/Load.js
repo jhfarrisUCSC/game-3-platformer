@@ -12,6 +12,7 @@ class Load extends Phaser.Scene {
         // Load tilemap information
         this.load.image("industrial_tiles", "industrial_tiles.png");
         this.load.image("base_tiles", "base_tiles.png");
+        this.load.image("characters", "tilemap-characters_packed.png");
         this.load.image("ending", "endscreen.png");
 
         this.load.tilemapTiledJSON("platformer-level-1", "platformer-level-1.tmj");   // Tilemap in JSON
@@ -37,6 +38,10 @@ class Load extends Phaser.Scene {
         this.load.spritesheet("industrial_sheet", "industrial_tiles.png", {
             frameWidth: 18,
             frameHeight: 18
+        });
+        this.load.spritesheet("character_sheet", "tilemap-characters_packed.png", {
+            frameWidth: 24,
+            frameHeight: 24
         });
 
         // Oooh, fancy. A multi atlas is a texture atlas which has the textures spread
@@ -85,6 +90,17 @@ class Load extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('base_sheet', {
                 start: 151,
                 end: 152
+            }),
+            duration: 1600,
+            repeat: -1
+        });
+
+        // mover animation
+        this.anims.create({
+            key: 'mover',
+            frames: this.anims.generateFrameNames('character_sheet', {
+                start: 15,
+                end: 16
             }),
             duration: 1600,
             repeat: -1
