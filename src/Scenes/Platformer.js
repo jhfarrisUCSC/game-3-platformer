@@ -49,6 +49,7 @@ class Platformer extends Phaser.Scene {
             platform: true
         });
         
+        // Cloud Collisions only on top
         this.groundLayer.forEachTile(tile => {
             if (tile.properties.platform) {
                 tile.collideUp = true;
@@ -58,28 +59,25 @@ class Platformer extends Phaser.Scene {
             }
         });
 
-        // Find coins in the "Objects" layer in Phaser
-        // Look for them by finding objects with the name "coin"
-        // Assign the coin texture from the tilemap_sheet sprite sheet
-        // Phaser docs:
-        // https://newdocs.phaser.io/docs/3.80.0/focus/Phaser.Tilemaps.Tilemap-createFromObjects
-
+        // Create coins
         this.coins = this.map.createFromObjects("collectables", {
             name: "coin",
             key: "base_sheet",
             frame: 151
         });
         
+        // Amount of coins
         this.coinCount = 0;
+
+        // Door to next level is accessible
         this.doorOpen = false;
 
-        // Key
+        // Key for door
         this.key = this.map.createFromObjects("collectables", {
             name: "key",
             key: "base_sheet",
             frame: 27
         });
-
 
         this.keyGroup = this.physics.add.staticGroup();
 
@@ -90,12 +88,10 @@ class Platformer extends Phaser.Scene {
             this.keyGroup.add(keyBody);
         });
 
-        // Since createFromObjects returns an array of regular Sprites, we need to convert 
-        // them into Arcade Physics sprites (STATIC_BODY, so they don't move) 
+        // Coin into sprites 
         this.physics.world.enable(this.coins, Phaser.Physics.Arcade.STATIC_BODY);
 
-        // Create a Phaser group out of the array this.coins
-        // This will be used for collision detection below.
+        // Enable coin interaction
         this.coinGroup = this.add.group(this.coins);
 
         
@@ -105,7 +101,7 @@ class Platformer extends Phaser.Scene {
         my.sprite.player.setCollideWorldBounds(true);
 
         
-        // Death Poison and Level Clear
+        // Various player collisions, specifically Death for Water and Level Clear for Door
         this.physics.add.collider(my.sprite.player, this.groundLayer, (player, tile) => {
             if (tile.properties.death) {
                 this.sound.play('dies');
@@ -117,6 +113,7 @@ class Platformer extends Phaser.Scene {
             }
         });
 
+        // Frames for animation
         this.tileFrames = [
             { frames: [14, 30], index: 0 },
             { frames: [79, 80], index: 0 },
@@ -143,6 +140,7 @@ class Platformer extends Phaser.Scene {
             }
         });
 
+        // Coin Sound
         this.coins.forEach(coin => {
             coin.play('coin');
         });
@@ -157,6 +155,7 @@ class Platformer extends Phaser.Scene {
             obj2.destroy(); // remove coin on overlap
         });
         
+        // Handle collision dectection with key
         this.physics.add.overlap(my.sprite.player, this.keyGroup, (obj1, obj2) => {
             if(obj2.body && obj2.body.enable){
                 this.groundLayer.forEachTile(tile => {
@@ -173,12 +172,13 @@ class Platformer extends Phaser.Scene {
         // set up Phaser-provided cursor key input
         cursors = this.input.keyboard.createCursorKeys();
 
+        // Restart level
         this.rKey = this.input.keyboard.addKey('R');
 
         // Get coins
         this.cKey = this.input.keyboard.addKey('C');
 
-        // Ending
+        // Skip level
         this.tKey = this.input.keyboard.addKey('T');
 
         // debug key listener (assigned to D key)
@@ -213,6 +213,7 @@ class Platformer extends Phaser.Scene {
 
     update(time, delta) {
 
+        //Walking animation
         if(my.sprite.player.body.velocity.x != 0){
             this.stepCount -= delta;
             if(this.stepCount<=0 && (cursors.left.isDown || cursors.right.isDown) && my.sprite.player.body.blocked.down){
@@ -223,6 +224,7 @@ class Platformer extends Phaser.Scene {
             }
         }
 
+        // Checks if player has collected all coins
         if (this.coinCount === this.coins.length) {
             this.sound.play('switch');
             this.groundLayer.forEachTile(tile => {
@@ -237,11 +239,12 @@ class Platformer extends Phaser.Scene {
             this.coinCount++;
         }
 
+        //Player movement
+
         if(cursors.left.isDown) {
             my.sprite.player.setAccelerationX(-this.ACCELERATION);
             my.sprite.player.resetFlip();
             my.sprite.player.anims.play('walk', true);
-            // TODO: add particle following code here
             my.vfx.walking.startFollow(my.sprite.player, my.sprite.player.displayWidth/2-10, my.sprite.player.displayHeight/2-5, false);
 
             my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
@@ -268,7 +271,6 @@ class Platformer extends Phaser.Scene {
         }
 
         // player jump
-        // note that we need body.blocked rather than body.touching b/c the former applies to tilemap tiles and the latter to the "ground"
         if(!my.sprite.player.body.blocked.down) {
             my.sprite.player.anims.play('jump');
         }
@@ -289,17 +291,20 @@ class Platformer extends Phaser.Scene {
             this.sound.play('walking');
         }
 
+        // Determines if player is airborne
         this.airborne = !my.sprite.player.body.blocked.down;
 
-
+        // Restart Shortcut
         if(Phaser.Input.Keyboard.JustDown(this.rKey)) {
             this.scene.restart();
         }
 
+        // Next level shortcut
         if(Phaser.Input.Keyboard.JustDown(this.tKey)) {
-            this.scene.start("endScene");
+            this.scene.start("level2Scene");
         }
 
+        // Collect coins shortcut
         if(Phaser.Input.Keyboard.JustDown(this.cKey)) {
             this.coinCount = this.coins.length;
         }

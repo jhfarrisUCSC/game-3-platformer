@@ -35,15 +35,22 @@ class Level2 extends Phaser.Scene {
             collides: true
         });
 
+        // Collision for closed gate
         this.groundLayer.setCollision(44, true);
 
         // Platform Collision
         this.groundLayer.setCollisionByProperty({
             platform: true
         });
+
+        // Jumper Collision
+        this.groundLayer.setCollisionByProperty({
+            jumper: true
+        });
         
+        // Collision for top of clouds and jump pad
         this.groundLayer.forEachTile(tile => {
-            if (tile.properties.platform) {
+            if (tile.properties.platform || tile.properties.jumper) {
                 tile.collideUp = true;
                 tile.collideDown = false;
                 tile.collideLeft = false;
@@ -52,27 +59,27 @@ class Level2 extends Phaser.Scene {
         });
 
 
-        // Find coins in the "Objects" layer in Phaser
-        // Look for them by finding objects with the name "coin"
-        // Assign the coin texture from the tilemap_sheet sprite sheet
-        // Phaser docs:
-        // https://newdocs.phaser.io/docs/3.80.0/focus/Phaser.Tilemaps.Tilemap-createFromObjects
-
+        // Create coins
         this.coins = this.map.createFromObjects("collectables", {
             name: "coin",
             key: "base_sheet",
             frame: 151
         });
         
+        // Create crates
         this.crates = this.map.createFromObjects("crates", {
             name: "crate",
             key: "base_sheet",
             frame: 26
         });
         
-
+        // Player coin count
         this.coinCount = 0;
+        
+        // If door to next level is open
         this.doorOpen = false;
+
+        // If player has power-up
         this.jumpPowerUp = false;
 
         // Power Up
@@ -84,6 +91,7 @@ class Level2 extends Phaser.Scene {
 
         this.powerGroup = this.physics.add.staticGroup();
 
+        // Power Up interaction
         this.jumpPower.forEach(gemBody => {
             gemBody.setVisible(false);
             this.physics.world.enable(gemBody, Phaser.Physics.Arcade.STATIC_BODY);
@@ -125,7 +133,7 @@ class Level2 extends Phaser.Scene {
         my.sprite.player = this.physics.add.sprite(64, 320, "platformer_characters", "tile_0000.png");
         my.sprite.player.setCollideWorldBounds(true);
 
-        // Crates
+        // Create interactable crates
         this.physics.world.enable(this.crates, Phaser.Physics.Arcade.DYNAMIC_BODY);
 
         this.crateGroup = this.physics.add.group();
@@ -145,10 +153,16 @@ class Level2 extends Phaser.Scene {
             crate.pushed = true;
         }); 
 
-        
+        this.physics.add.collider(my.sprite.player, this.groundLayer, (player, tile) => {
+            if (tile.properties.jumper) {
+                player.setVelocityY(this.JUMP_VELOCITY * 1.25);
+            }
+        });
+
+        // Determines whether the switch is triggered or not
         this.switchOn = false;
 
-        // Death Poison and Level Clear
+        // Death Poison, Level Clear, Jump Pad, and Switch Interactions
         this.physics.add.overlap(my.sprite.player, this.groundLayer, (player, tile) => {
             if (tile.properties.death) {
                 this.sound.play('dies');
@@ -157,19 +171,18 @@ class Level2 extends Phaser.Scene {
             else if (tile.properties.door && (this.doorOpen == true)) {
                 this.sound.play('door');
                 this.scene.start("endScene");
-            } else if (tile.properties.jumper) {
-                player.setVelocityY(this.JUMP_VELOCITY * 1.25);
             } else if (tile.properties.switch){
-                if (tile.index === 177 && Phaser.Input.Keyboard.JustDown(cursors.right)){
+                if (tile.index === 177 && Phaser.Input.Keyboard.JustDown(cursors.down)){
                     tile.index = 179;
                     this.switchOn = true;
-                } else if (tile.index === 179  && Phaser.Input.Keyboard.JustDown(cursors.left)){
+                } else if (tile.index === 179  && Phaser.Input.Keyboard.JustDown(cursors.down)){
                     tile.index = 177;
                     this.switchOn = false;
                 }
             }
         });
 
+        // Animation frames
         this.tileFrames = [
             { frames: [14, 30], index: 0 },
             { frames: [79, 80], index: 0 },
@@ -265,6 +278,7 @@ class Level2 extends Phaser.Scene {
 
     update(time, delta) {
 
+        // Stops crates from moving without player interaction
         this.crateGroup.children.iterate(crate => {
             if (!crate.pushed) {
             crate.body.setVelocityX(0);
@@ -272,10 +286,14 @@ class Level2 extends Phaser.Scene {
             crate.pushed = false;
         });
 
+        // Determines whether the gates are open/closed, similar to Super Mario's 
+        // "Dotted-Line Block" which toggles collisions based on input
         this.gateToggle = false;
 
+        // Counts how many buttons are being pressed
         let pressedButtons = 0;
 
+        // Checks if crate is on button
         this.crateGroup.getChildren().forEach(crate => {
             const tile = this.groundLayer.getTileAtWorldXY(crate.x, crate.y);
             if (tile && tile.properties.button) {
@@ -283,6 +301,7 @@ class Level2 extends Phaser.Scene {
             }
         });
 
+        // If both buttons are pressed, reveal power-up
         if (pressedButtons === 2) {
             this.sound.play('switch');
             this.powerGroup.children.iterate(gemBody => {
@@ -297,19 +316,21 @@ class Level2 extends Phaser.Scene {
             obj2.destroy(); // remove coin on overlap
         });
 
-        // RULE 1: switch overrides everything
+
+        // I had trouble on the switch and button interactions and used Microsoft Co-Pilot 
+        // for assistance to help clear up the toggles because I over complicated the system
+        // in my head. I was using multiple "if-then" scenarios which was too convoluted.
         if (this.switchOn) {
-            this.gateToggle = false; // gate open
+            this.gateToggle = false;
         }
-        // RULE 2: crates on buttons close gate
         else if (pressedButtons > 0) {
-            this.gateToggle = true; // gate closed
+            this.gateToggle = true;
         }
-        // RULE 3: default state
         else {
-            this.gateToggle = false; // or whatever default you want
+            this.gateToggle = false;
         }
 
+        // Switches closed gates to open gates and vice-versa
         this.groundLayer.forEachTile(tile => {
             if (this.gateToggle) {
                 if (tile.properties.openGate) {
@@ -332,6 +353,7 @@ class Level2 extends Phaser.Scene {
             }
         });
 
+        //Walking animation
         if(my.sprite.player.body.velocity.x != 0){
             this.stepCount -= delta;
             if(this.stepCount<=0 && (cursors.left.isDown || cursors.right.isDown) && my.sprite.player.body.blocked.down){
@@ -342,6 +364,7 @@ class Level2 extends Phaser.Scene {
             }
         }
 
+        // Checks if player has collected all coins
         if (this.coinCount === this.coins.length) {
             this.sound.play('switch');
             this.groundLayer.forEachTile(tile => {
@@ -356,11 +379,12 @@ class Level2 extends Phaser.Scene {
             this.coinCount++;
         }
 
+        //Player movement
+
         if(cursors.left.isDown) {
             my.sprite.player.setAccelerationX(-this.ACCELERATION);
             my.sprite.player.resetFlip();
             my.sprite.player.anims.play('walk', true);
-            // TODO: add particle following code here
             my.vfx.walking.startFollow(my.sprite.player, my.sprite.player.displayWidth/2-10, my.sprite.player.displayHeight/2-5, false);
 
             my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
@@ -387,7 +411,6 @@ class Level2 extends Phaser.Scene {
         }
 
         // player jump
-        // note that we need body.blocked rather than body.touching b/c the former applies to tilemap tiles and the latter to the "ground"
         if(!my.sprite.player.body.blocked.down) {
             my.sprite.player.anims.play('jump');
         }
@@ -396,11 +419,8 @@ class Level2 extends Phaser.Scene {
 
             my.vfx.walking.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
             my.vfx.walking.start();
-            if(this.jumpPowerUp == true){
-                my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY * 1.25);
-            } else{
-                my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
-            }
+            // Reset Jump Pads
+            my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
             this.sound.play('jumping');
         }
 
@@ -411,18 +431,21 @@ class Level2 extends Phaser.Scene {
             my.vfx.walking.start();
             this.sound.play('walking');
         }
-
+        
+        // Determines if player is airborne
         this.airborne = !my.sprite.player.body.blocked.down;
 
-
+        // Restart Shortcut
         if(Phaser.Input.Keyboard.JustDown(this.rKey)) {
             this.scene.restart();
         }
 
+        // Next level shortcut
         if(Phaser.Input.Keyboard.JustDown(this.tKey)) {
-            this.scene.start("endScene");
+            this.scene.start("level2Scene");
         }
 
+        // Collect coins shortcut
         if(Phaser.Input.Keyboard.JustDown(this.cKey)) {
             this.coinCount = this.coins.length;
         }
