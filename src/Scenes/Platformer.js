@@ -226,7 +226,7 @@ class Platformer extends Phaser.Scene {
 
         // Checks if player has collected all coins
         if (this.coinCount === this.coins.length) {
-            this.sound.play('switch');
+            this.sound.play('keyCase');
             this.groundLayer.forEachTile(tile => {
                 if (tile.index === 10) {
                     tile.index = 11;

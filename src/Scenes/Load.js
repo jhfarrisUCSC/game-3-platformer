@@ -14,6 +14,7 @@ class Load extends Phaser.Scene {
         this.load.image("base_tiles", "base_tiles.png");
         this.load.image("characters", "tilemap-characters_packed.png");
         this.load.image("ending", "endscreen.png");
+        this.load.image("heartProjectile", "tile_0044.png");
 
         this.load.tilemapTiledJSON("platformer-level-1", "platformer-level-1.tmj");   // Tilemap in JSON
 
@@ -24,11 +25,13 @@ class Load extends Phaser.Scene {
         // audio
         this.load.audio('walking', 'footstep_carpet_003.ogg');
         this.load.audio('ding', 'impactMetal_light_000.ogg');
-        this.load.audio('switch', 'switch_006.ogg');
+        this.load.audio('keyCase', 'toggle_001.ogg');
         this.load.audio('door', 'open_001.ogg');
         this.load.audio('key', 'impactMetal_heavy_000.ogg');
         this.load.audio('jumping', 'drop_001.ogg');
         this.load.audio('dies', 'error_001.ogg');
+        this.load.audio('hit', 'impactPunch_heavy_004.ogg');
+        this.load.audio('shoot', 'impactTin_medium_000.ogg');
 
         // Load the tilemap as a spritesheet
         this.load.spritesheet("base_sheet", "base_tiles.png", {
@@ -107,7 +110,7 @@ class Load extends Phaser.Scene {
         });
 
          // ...and pass to the next Scene
-         this.scene.start("level2Scene");
+         this.scene.start("platformerScene");
     }
 
     // Never get here since a new scene is started in create()

@@ -49,6 +49,8 @@ class Level2 extends Phaser.Scene {
         this.groundLayer.setCollisionByProperty({
             jumper: true
         });
+
+        this.movingLeft = false;
         
         // Collision for top of clouds and jump pad
         this.groundLayer.forEachTile(tile => {
@@ -81,20 +83,53 @@ class Level2 extends Phaser.Scene {
             frame: 15
         });
 
-        this.enemyGroup = this.physics.add.group();
+        this.moverGroup = this.physics.add.group();
+        this.projectileGroup = this.physics.add.group();
+        this.playerProjectileGroup = this.physics.add.group();
 
         this.movingEnemies.forEach(enemy => {
             this.physics.world.enable(enemy);
             enemy.body.setCollideWorldBounds(true);
+            enemy.body.setImmovable(true);
             enemy.body.setAllowGravity(false);
             enemy.play('mover');
             enemy.moverTurn = false;
             enemy.moverVel = -12;
             enemy.body.setVelocityX(enemy.moverVel);
-            this.enemyGroup.add(enemy);
+            this.moverGroup.add(enemy);
         });
 
         this.physics.add.collider(this.movingEnemies, this.groundLayer);
+
+        
+        this.shooterEnemies = this.map.createFromObjects("enemies", {
+            name: "shooter",
+            key: "character_sheet",
+            frame: 21
+        });
+
+        this.shooterGroup = this.physics.add.group();
+
+        this.shooterEnemies.forEach(enemy => {
+            this.physics.world.enable(enemy);
+            enemy.body.setCollideWorldBounds(true);
+            enemy.body.setAllowGravity(false);
+            enemy.shooterLeft = true;
+            enemy.active = true;
+            // set up projectiles
+            let projectile = this.physics.add.sprite(enemy.x, enemy.y, "heartProjectile");
+            projectile.body.setAllowGravity(false);
+            projectile.body.setImmovable(true);
+            projectile.angle = 180;
+            projectile.firing = false;
+            projectile.barrel = enemy.x;
+            projectile.hover = enemy.y;
+            projectile.shooter = enemy;
+            this.projectileGroup.add(projectile);
+            this.shooterGroup.add(enemy);
+        });
+
+        this.physics.add.collider(this.shooterEnemies, this.groundLayer);
 
         // Player coin count
         this.coinCount = 0;
@@ -185,7 +220,7 @@ class Level2 extends Phaser.Scene {
         // Determines whether the switch is triggered or not
         this.switchOn = false;
 
-        // Death Poison, Level Clear, Jump Pad, and Switch Interactions
+        // Death from Water, Level Clear, Jump Pad, and Switch Interactions
         this.physics.add.overlap(my.sprite.player, this.groundLayer, (player, tile) => {
             if (tile.properties.death) {
                 this.sound.play('dies');
@@ -203,6 +238,16 @@ class Level2 extends Phaser.Scene {
                     this.switchOn = false;
                 }
             }
+        });
+        
+        // Player touching enemies and projectiles
+        this.physics.add.overlap(my.sprite.player, this.moverGroup, (player, enemy) => {
+            this.sound.play('dies');
+            this.scene.restart();
+        });  
+        this.physics.add.overlap(my.sprite.player, this.projectileGroup, (player, enemy) => {
+            this.sound.play('dies');
+            this.scene.restart();
         });
 
         // Animation frames
@@ -303,7 +348,8 @@ class Level2 extends Phaser.Scene {
     update(time, delta) {
 
         // Enemy movement
-        this.enemyGroup.getChildren().forEach(enemy => {
+        this.moverGroup.getChildren().forEach(enemy => {
+            enemy.body.setVelocityY(0);
             const tile = this.groundLayer.getTileAtWorldXY(enemy.x, enemy.y);
             if (!tile) {
                 enemy.body.setVelocityX(0);
@@ -315,8 +361,42 @@ class Level2 extends Phaser.Scene {
                 enemy.moverTurn = false;
                 enemy.body.setVelocityX(enemy.moverVel);
             }
+            if (enemy.moverVel < 0){
+                    enemy.setFlip(false, false);
+            } else if (enemy.moverVel > 0){
+                    enemy.setFlip(true, false)
+            }
         });
 
+        // Shooter movement
+        this.shooterGroup.getChildren().forEach(enemy => {
+            if(my.sprite.player.x < enemy.x){
+                enemy.setFlip(false,false);
+            } else if(my.sprite.player.x > enemy.x){
+                enemy.setFlip(true,false);
+            }
+        });
+
+        // Enemy shoot
+        this.projectileGroup.getChildren().forEach(shot => {
+            if(shot.shooter.active == false){
+                shot.destroy();
+            } else {
+                shot.body.setVelocityY(-34);
+                if(shot.firing == false && (my.sprite.player.x < shot.barrel)){
+                    shot.body.setVelocityX(-72);
+                    shot.firing = true;
+                } else if(shot.firing == false && (my.sprite.player.x > shot.barrel)){
+                    shot.body.setVelocityX(72);
+                    shot.firing = true;
+                }
+                if (!this.cameras.main.worldView.contains(shot.x, shot.y)) {
+                    shot.x = shot.barrel;
+                    shot.y = shot.hover;
+                    shot.firing = false;
+                }
+            }
+        });
         
         // Stops crates from moving without player interaction
         this.crateGroup.children.iterate(crate => {
@@ -342,7 +422,8 @@ class Level2 extends Phaser.Scene {
         });
 
         // If both buttons are pressed, reveal power-up
-        if (pressedButtons === 2) {
+        if (pressedButtons === 2 && !this.switchSoundPlayed) {
+            this.switchSoundPlayed = true;
             this.sound.play('switch');
             this.powerGroup.children.iterate(gemBody => {
                 gemBody.setVisible(true);
@@ -424,6 +505,7 @@ class Level2 extends Phaser.Scene {
         if(cursors.left.isDown) {
             my.sprite.player.setAccelerationX(-this.ACCELERATION);
             my.sprite.player.resetFlip();
+            this.movingLeft = true;
             my.sprite.player.anims.play('walk', true);
             my.vfx.walking.startFollow(my.sprite.player, my.sprite.player.displayWidth/2-10, my.sprite.player.displayHeight/2-5, false);
 
@@ -434,6 +516,7 @@ class Level2 extends Phaser.Scene {
         } else if(cursors.right.isDown) {
             my.sprite.player.setAccelerationX(this.ACCELERATION);
             my.sprite.player.setFlip(true, false);
+            this.movingLeft = false;
             my.sprite.player.anims.play('walk', true);
             // TODO: add particle following code here
             my.vfx.walking.startFollow(my.sprite.player, my.sprite.player.displayWidth/2-10, my.sprite.player.displayHeight/2-5, false);
@@ -465,6 +548,8 @@ class Level2 extends Phaser.Scene {
             this.sound.play('jumping');
         }
 
+        // player shooting
+
         if(my.sprite.player.body.blocked.down && (this.airborne == true)) {
             my.vfx.walking.startFollow(my.sprite.player, my.sprite.player.displayWidth/2-10, my.sprite.player.displayHeight/2-5, false);
 
@@ -483,7 +568,7 @@ class Level2 extends Phaser.Scene {
 
         // Next level shortcut
         if(Phaser.Input.Keyboard.JustDown(this.tKey)) {
-            this.scene.start("level2Scene");
+            this.scene.start("endScene");
         }
 
         // Collect coins shortcut
@@ -491,5 +576,47 @@ class Level2 extends Phaser.Scene {
             this.coinCount = this.coins.length;
         }
 
+        // player shoot
+        if(Phaser.Input.Keyboard.JustDown(cursors.down) && (this.jumpPowerUp == true)) {
+            if(this.playerProjectileGroup.getChildren().length < 1){
+                let projectile = this.physics.add.sprite(my.sprite.player.x, my.sprite.player.y, "heartProjectile");
+                projectile.body.setAllowGravity(false);
+                projectile.body.setImmovable(true);
+                projectile.firing = false;
+                this.playerProjectileGroup.add(projectile);
+            }
+        }
+
+        this.playerProjectileGroup.getChildren().forEach(shot => {
+            shot.body.setVelocityY(-34);
+            if(shot.firing == false && (this.movingLeft == true)){
+                shot.body.setVelocityX(-72);
+                shot.firing = true;
+                this.sound.play('shoot');
+            } else if(shot.firing == false && (this.movingLeft == false)){
+                shot.body.setVelocityX(72);
+                shot.firing = true;
+                this.sound.play('shoot');
+            }
+            if (!this.cameras.main.worldView.contains(shot.x, shot.y)) {
+                shot.firing = false;
+                shot.destroy();
+            }
+        });
+
+        this.physics.add.overlap(this.playerProjectileGroup, this.moverGroup, (shot, enemy) => {
+            enemy.destroy();
+            shot.destroy();
+            shot.firing = false;
+            this.sound.play('hit');
+        }); 
+
+        this.physics.add.overlap(this.playerProjectileGroup, this.shooterGroup, (shot, enemy) => {
+            enemy.active = false;
+            enemy.destroy();
+            shot.destroy();
+            shot.firing = false;
+            this.sound.play('hit');
+        }); 
     }
 }
